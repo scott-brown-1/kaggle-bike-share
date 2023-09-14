@@ -1,3 +1,3 @@
 # kaggle-bike-share
 
-Repo hosting code for Kaggle Bike Share competition.
+Repo hosting code for Kaggle Bike Share competition. Work in progress.

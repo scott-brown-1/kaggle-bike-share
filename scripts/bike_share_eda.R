@@ -30,7 +30,7 @@ bike['workingday'] <- factor(bike$workingday)
 bike['weather'] <- factor(bike$weather)
 
 # Rename response var to avoid conflict with builtin "count" function
-bike <- rename(bike, count_y = count)
+bike <- rename(bike, rentals = count)
 
 ###########################
 ### Check Missing Values ##
@@ -84,9 +84,9 @@ corr_plot
 ###########################
 ### Examine response var ##
 ###########################
-summary(bike$count_y)
+summary(bike$rentals)
 
-response_hist <- ggplot(bike, aes(x=count_y)) +
+response_hist <- ggplot(bike, aes(x=rentals)) +
   geom_histogram(binwidth=10, fill='skyblue') +
   labs(title="Histogram of Rental Count",x="Number of rentals", y = "Count of observations") +
   theme_classic()
@@ -105,6 +105,4 @@ combo_plot
 
 # Save plot
 ggsave('combo_plot.jpg',combo_plot)
-
-
 
