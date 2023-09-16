@@ -51,5 +51,8 @@ rsconnect/
 # Data files
 data/
 
+# Output files
+outputs/
+
 # Personal notes
 notes.md
