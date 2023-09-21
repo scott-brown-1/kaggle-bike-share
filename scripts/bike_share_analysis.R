@@ -27,3 +27,37 @@ prep_train <- function(df, log_transform=T){
   
   return(df)
 }
+
+setup_train_recipe <- function(train, as_numeric=FALSE){
+  prelim_ft_eng <- recipe(count~., data=train) %>% # Set model formula
+    step_mutate(
+      day_of_week=wday(datetime, label=T), # Add day of week
+      hour=hour(datetime), # Add hour of day
+      log_wind=log(windspeed), # Inferring that earlier jumps in windspeed more impactful
+      daytime=factor(hour>6 & hour<22), # Add daytime (defined as between 6AM and 10PM)
+      humidity=humidity/100, # Put humidity on percentage scale
+      weather=ifelse(weather==4, 3, weather), #Relabel weather 4 to 3
+      # Fix dtypes
+      season = factor(season, levels=1:4, labels=c('spring','summer','fall','winter')),
+      holiday = factor(holiday),
+      workingday = factor(workingday),
+      weather = factor(weather, levels=1:4, c('clear','overcast','rainy','stormy')),
+    ) %>%
+    step_mutate_at(
+      log_wind, fn= ~ ifelse(is.infinite(.x), 0, .x)
+    ) %>%
+    step_poly(atemp, degree=2) %>% # Add squared temperature to increase contrast
+    step_rm(temp, windspeed, datetime) %>% #drop superfluous cols
+    step_zv(all_predictors()) %>% # Remove zero-variance cols 
+    step_normalize(all_numeric_predictors()) # Normalize features
+  
+  if(as_numeric){
+    prelim_ft_eng <- prelim_ft_eng %>%
+      step_dummy(all_nominal_predictors())
+  }
+  
+  # Set up preprocessing
+  prepped_recipe <- prep(prelim_ft_eng)
+  
+  return(prepped_recipe)
+}

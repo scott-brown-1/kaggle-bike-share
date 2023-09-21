@@ -36,14 +36,14 @@ bake(prepped_recipe, new_data=test)
 ## Fit Regression Model #
 #########################
 
-# Define Poisson model
-# TODO: give penalty and mixture parameters
-poisson_model <- poisson_reg(penalty=tune(), mixture=tune()) %>%
+# Define penalized linear model
+# TODO: these parameters also work with Poisson regression
+p_reg_model <- linear_reg(penalty=tune(), mixture=tune()) %>%
   set_engine('glmnet')
 
 # Define workflow
-poisson_workflow <- workflow(prepped_recipe) %>%
-  add_model(poisson_model)
+p_reg_workflow <- workflow(prepped_recipe) %>%
+  add_model(p_reg_model)
 
 # Define a grid of hyperparameters
 tuning_grid <- grid_regular(
@@ -56,7 +56,7 @@ tuning_grid <- grid_regular(
 cv <- vfold_cv(data=train, v = 10, repeats=1)
 
 # Perform parameter tuning
-tune_results <- poisson_workflow %>%
+tune_results <- p_reg_workflow %>%
   tune_grid(
     resamples=cv,
     grid=tuning_grid,
@@ -74,12 +74,13 @@ best_params <- tune_results %>%
 
 # Create and fit the best model
 final_workflow <-
-  poisson_workflow %>%
+  p_reg_workflow %>%
   finalize_workflow(best_params) %>%
   fit(data=train)
 
 # Predict new rentals
 y_pred <- predict(final_workflow, new_data=test)
+
 if (LOG_TRANSFORM) y_pred <- exp(y_pred)
 
 # Create output df in Kaggle format
@@ -88,4 +89,4 @@ output <- data.frame(
   count=y_pred$.pred
 )
 
-vroom::vroom_write(output,'./outputs/poisson_predictions.csv',delim=',')
+vroom::vroom_write(output,'./outputs/penalized_reg_predictions.csv',delim=',')

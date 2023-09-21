@@ -18,30 +18,7 @@ predict_with_lm <- function(train, test, log_transform=LOG_TRANSFORM){
   ## Feature Engineering ##
   #########################
   
-  prelim_ft_eng <- recipe(count~., data=train) %>% # Set model formula
-    step_mutate(
-      day_of_week=wday(datetime, label=T), # Add day of week
-      hour=hour(datetime), # Add hour of day
-      log_wind=log(windspeed), # Inferring that earlier jumps in windspeed more impactful
-      daytime=(hour>6 & hour<22), # Add daytime (defined as between 6AM and 10PM)
-      humidity=humidity/100, # Put humidity on percentage scale
-      weather=ifelse(weather==4, 3, weather), #Relabel weather 4 to 3
-      # Fix dtypes
-      season = factor(season, levels=1:4, labels=c('spring','summer','fall','winter')),
-      holiday = factor(holiday),
-      workingday = factor(workingday),
-      weather = factor(weather, levels=1:4, c('clear','overcast','rainy','stormy')),
-    ) %>%
-    step_mutate_at(
-      log_wind, fn= ~ ifelse(is.infinite(.x), 0, .x)
-    ) %>%
-    step_poly(atemp, degree=2) %>% # Add squared temperature to increase contrast
-    step_rm(temp, windspeed) %>% #drop superfluous cols
-    step_zv(all_predictors()) %>% # Remove zero-variance cols 
-    step_normalize(all_numeric_predictors()) # Normalize features
-  
-  # Set up preprocessing
-  prepped_recipe <- prep(prelim_ft_eng)
+  prepped_recipe <- setup_train_recipe(train)
   
   # Bake recipe
   bake(prepped_recipe, new_data=train)
