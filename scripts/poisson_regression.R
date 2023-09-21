@@ -10,7 +10,7 @@ source('./scripts/bike_share_analysis.R')
 source('./scripts/linear_regression.R')
 
 # Whether or not to log transform the response variable
-LOG_TRANSFORM <- T
+LOG_TRANSFORM <-T
 
 train <- prep_train(vroom::vroom('./data/train.csv'), log_transform=LOG_TRANSFORM)
 test <- vroom::vroom('./data/test.csv')
