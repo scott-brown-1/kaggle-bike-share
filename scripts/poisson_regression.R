@@ -15,7 +15,7 @@ LOG_TRANSFORM <-T
 train <- prep_train(vroom::vroom('./data/train.csv'), log_transform=LOG_TRANSFORM)
 test <- vroom::vroom('./data/test.csv')
 
-# The train predictions will be too accurate, but will this help?
+# The train predictions will be too accurate, but will this help on test?
 # train <- cbind(train_raw,predict_with_lm(train_raw[1:1000,], train_raw, log_transform=T)$count)
 # test <- cbind(test_raw,predict_with_lm(train_raw, test_raw, log_transform=T)$count)
 # names(train)[length(names(train))] <- 'lm_pred'
@@ -49,7 +49,7 @@ poisson_workflow <- workflow(prepped_recipe) %>%
 tuning_grid <- grid_regular(
   penalty(),
   mixture(),
-  levels = 10 #5^2 tuning possibilities
+  levels = 10 #10^2 tuning possibilities
 )
 
 # Specify the resampling strategy (e.g., 10-fold cross-validation)

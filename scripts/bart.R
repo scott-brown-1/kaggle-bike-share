@@ -2,8 +2,6 @@
 ### Imports and setup ###
 #########################
 
-library(dbarts)
-library(parsnip)
 library(tidyverse)
 library(tidymodels)
 
@@ -11,7 +9,7 @@ source('./scripts/bike_share_analysis.R')
 source('./scripts/linear_regression.R')
 
 # Whether or not to log transform the response variable
-LOG_TRANSFORM <- T
+LOG_TRANSFORM <- F
 
 train <- prep_train(vroom::vroom('./data/train.csv'), log_transform=LOG_TRANSFORM)
 test <- vroom::vroom('./data/test.csv')
@@ -35,21 +33,55 @@ bake(prepped_recipe, new_data=test)
 #Create the workflow
 bart_model <- 
   parsnip::bart(
-    trees = 250,
-    prior_terminal_node_coef = 0.75,
-    prior_terminal_node_expo = 1.75,
-    prior_outcome_range = 1.7
+    trees = tune(), #250,
+    prior_terminal_node_coef = tune(), #0.75,
+    prior_terminal_node_expo = tune(), #1.75,
   ) %>% 
   set_engine("dbarts") %>% 
   set_mode("regression")
 
 bart_workflow <-
   workflow(prepped_recipe) %>%
-  add_model(bart_model) %>%
+  add_model(bart_model) #%>%
+  #fit(data=train)
+
+# Define a grid of hyperparameters
+#318, 0.793, 1.86
+tuning_grid <- grid_regular(
+  trees(),
+  prior_terminal_node_coef(),
+  prior_terminal_node_expo(),
+  levels = 3#0 #10^2 tuning possibilities
+)
+
+# Specify the resampling strategy (e.g., 10-fold cross-validation)
+cv <- vfold_cv(data=train, v = 4, repeats=1)
+
+# Perform parameter tuning
+tune_results <- bart_workflow %>%
+  tune_grid(
+    resamples=cv,
+    grid=2,#tuning_grid,
+    metrics=metric_set(rmse))
+
+# Graph tuning
+# collect_metrics(tune_results) %>% # Gathers metrics into DF8
+#   filter(.metric=="rmse") %>%
+#   ggplot(data=., aes(x=penalty, y=mean, color=factor(mixture))) +
+#   geom_line()
+
+# Get the best hyperparameters
+best_params <- tune_results %>%
+  select_best('rmse')
+
+# Create and fit the best model
+final_workflow <-
+  bart_workflow %>%
+  finalize_workflow(best_params) %>%
   fit(data=train)
 
 # Predict new rentals
-y_pred <- predict(bart_workflow, new_data=test) 
+y_pred <- predict(final_workflow, new_data=test) 
 if(LOG_TRANSFORM) y_pred <- exp(y_pred)
 
 # Create output df in Kaggle format
@@ -59,54 +91,3 @@ output <- data.frame(
 )
 
 vroom::vroom_write(output,'./outputs/bart_predictions.csv',delim=',')
-
-#Model tuning with grid search
-# bart_model <- 
-#   parsnip::bart(
-#     trees = tune(),
-#     prior_terminal_node_coef = tune(),
-#     prior_terminal_node_expo = tune()
-#   ) %>% 
-#   set_engine("dbarts") %>% 
-#   set_mode("regression")
-# 
-# #parameter object
-# rf_param <- 
-#   workflow() %>% 
-#   add_model(bart_model) %>% 
-#   add_recipe(prepped_recipe) %>% 
-#   extract_parameter_set_dials() %>% 
-#   finalize(train)
-# 
-# #space-filling design with integer grid argument
-# df_folds <- vfold_cv(train)
-# df_reg_tune <-
-#   workflow() %>% 
-#   add_recipe(prepped_recipe) %>% 
-#   add_model(bart_model) %>% 
-#   tune_grid(
-#     df_folds,
-#     grid = 5,
-#     param_info = rf_param,
-#     metrics = metric_set(rsq)
-#   )
-# 
-# #Selecting the best parameters according to the r-square
-# rf_param_best <- 
-#   select_best(df_reg_tune, metric = "rsq") %>% 
-#   select(-.config)
-# 
-# #Final estimation with the object of best parameters
-# final_df_wflow <- 
-#   workflow() %>% 
-#   add_model(bart_model) %>% 
-#   add_recipe(prepped_recipe) %>% 
-#   finalize_workflow(rf_param_best)
-# 
-# set.seed(12345)
-# final_df_fit <- 
-#   final_df_wflow %>% 
-#   last_fit(df_split)
-# 
-# #Computes final the accuracy metrics 
-# collect_metrics(final_df_fit)
