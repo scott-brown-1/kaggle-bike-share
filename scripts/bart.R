@@ -9,7 +9,7 @@ source('./scripts/bike_share_analysis.R')
 source('./scripts/linear_regression.R')
 
 # Whether or not to log transform the response variable
-LOG_TRANSFORM <- F
+LOG_TRANSFORM <- T
 
 train <- prep_train(vroom::vroom('./data/train.csv'), log_transform=LOG_TRANSFORM)
 test <- vroom::vroom('./data/test.csv')
@@ -28,6 +28,8 @@ bake(prepped_recipe, new_data=test)
 #########################
 ## Fit Regression Model #
 #########################
+
+set.seed(42)
 
 #Define BART model
 #Create the workflow
@@ -51,11 +53,14 @@ tuning_grid <- grid_regular(
   trees(),
   prior_terminal_node_coef(),
   prior_terminal_node_expo(),
-  levels = 3#0 #10^2 tuning possibilities
+  levels = 7#0 #10^2 tuning possibilities
 )
 
 # Specify the resampling strategy (e.g., 10-fold cross-validation)
-cv <- vfold_cv(data=train, v = 4, repeats=1)
+cv <- vfold_cv(data=train, v = 7, repeats=1)
+
+# parallel tune grid
+doParallel::registerDoParallel(10)
 
 # Perform parameter tuning
 tune_results <- bart_workflow %>%

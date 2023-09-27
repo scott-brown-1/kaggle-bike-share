@@ -31,8 +31,9 @@ prep_train <- function(df, log_transform=T){
 setup_train_recipe <- function(train, as_numeric=FALSE){
   prelim_ft_eng <- recipe(count~., data=train) %>% # Set model formula
     step_mutate(
-      day_of_week=wday(datetime, label=T), # Add day of week
-      hour=hour(datetime), # Add hour of day
+      day_of_week=lubridate::wday(datetime, label=T), # Add day of week
+      hour=lubridate::hour(datetime), # Add hour of day,
+      #month=lubridate::month(datetime), # Add month of year #NOTE: this reduces performance
       log_wind=log(windspeed), # Inferring that earlier jumps in windspeed more impactful
       daytime=factor(hour>6 & hour<22), # Add daytime (defined as between 6AM and 10PM)
       humidity=humidity/100, # Put humidity on percentage scale
