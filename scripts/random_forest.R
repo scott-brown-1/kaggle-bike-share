@@ -48,7 +48,7 @@ tuning_grid <- grid_regular(
   levels = 5 #10^2 tuning possibilities
 )
 
-# Specify the resampling strategy (e.g., 10-fold cross-validation)
+# Specify the resampling strategy (e.g., 5-fold cross-validation)
 cv <- vfold_cv(data=train, v=5, repeats=1)
 
 # parallel tune grid
@@ -76,6 +76,8 @@ final_workflow <-
   forest_wf %>%
   finalize_workflow(best_params) %>%
   fit(data=train)
+
+saveRDS(final_workflow,'./models/forest_tuned.rds')
 
 # Predict new rentals
 y_pred <- predict(final_workflow, new_data=test)

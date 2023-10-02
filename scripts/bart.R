@@ -44,8 +44,7 @@ bart_model <-
 
 bart_workflow <-
   workflow(prepped_recipe) %>%
-  add_model(bart_model) #%>%
-  #fit(data=train)
+  add_model(bart_model)
 
 # Define a grid of hyperparameters
 #318, 0.793, 1.86
@@ -84,6 +83,11 @@ final_workflow <-
   bart_workflow %>%
   finalize_workflow(best_params) %>%
   fit(data=train)
+
+final_workflow <- bart_workflow %>%
+  fit(data=train)
+
+saveRDS(final_workflow,'./models/bart_tuned.rds')
 
 # Predict new rentals
 y_pred <- predict(final_workflow, new_data=test) 
