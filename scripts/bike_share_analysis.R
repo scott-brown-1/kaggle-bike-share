@@ -28,16 +28,40 @@ prep_train <- function(df, log_transform=T){
   return(df)
 }
 
-setup_train_recipe <- function(train, as_numeric=FALSE){
-  prelim_ft_eng <- recipe(count~., data=train) %>% # Set model formula
+prep_train_split <- function(df, log_transform=T){
+  #########################
+  ##### Data Cleaning #####
+  #########################
+  
+  # Drop features that we don't know yet or don't want
+  df <- df %>%select(-count)
+  
+  # Log transform response variable to avoid negative predictions
+  if(('casual') %in% colnames(df) && ('registered') %in% colnames(df) && log_transform){
+    df['casual'] <- log(df$casual+1)
+    df['registered'] <- log(df$registered+1)
+  }
+  
+  return(df)
+}
+
+z_score <- function(v) return((v - mean(v)) / sd(v))
+
+setup_train_recipe <- function(train, as_numeric=FALSE, form=count~.){
+  prelim_ft_eng <- recipe(form, data=train) %>% # Set model formula
     step_mutate(
-      day_of_week=lubridate::wday(datetime, label=T), # Add day of week
+      day_of_week=factor(lubridate::wday(datetime, label=T)), # Add day of week
       hour=lubridate::hour(datetime), # Add hour of day,
-      #month=lubridate::month(datetime), # Add month of year #NOTE: this reduces performance
-      log_wind=log(windspeed), # Inferring that earlier jumps in windspeed more impactful
       daytime=factor(hour>6 & hour<22), # Add daytime (defined as between 6AM and 10PM)
+      hour=factor(hour),
+      year=factor(lubridate::year(datetime)),
+      #month=factor(lubridate::month(datetime)), # Add month of year #NOTE: this reduces performance
+      log_wind=log(windspeed), # Inferring that earlier jumps in windspeed more impactful
       humidity=humidity/100, # Put humidity on percentage scale
       weather=ifelse(weather==4, 3, weather), #Relabel weather 4 to 3
+      #hot=factor(atemp>35),
+      #cold=factor(atemp<4.45),
+      #temp_z=z_score(atemp),
       # Fix dtypes
       season = factor(season, levels=1:4, labels=c('spring','summer','fall','winter')),
       holiday = factor(holiday),
